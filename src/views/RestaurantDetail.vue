@@ -7,7 +7,7 @@
 
     <!-- 顶部图片 -->
     <div class="top-image" :style="{ height: imageHeight + 'px' }">
-      <img :src="restaurant.image" alt="门店图片" />
+      <img :src="getImageUrl(restaurant.image)" alt="门店图片" @error="handleImageError" />
     </div>
 
     <!-- 基本信息 -->
@@ -35,7 +35,7 @@
           <!-- 菜品列表 -->
           <div class="dish-list">
             <div class="dish-item" v-for="dish in restaurant.dishes" :key="dish.id" @click="goToDishDetail(dish.id)">
-              <img :src="dish.image" alt="菜品图片" class="dish-image" />
+              <img :src="getImageUrl(dish.image)" alt="菜品图片" class="dish-image" @error="handleImageError" />
               <div class="dish-info">
                 <h3 class="dish-name">{{ dish.name }}</h3>
                 <p class="dish-flavor">口味: {{ dish.flavor }}</p>
@@ -84,13 +84,14 @@
                 <div class="rating-label">性价比</div>
                 <div class="rating-bar-container">
                   <div class="rating-bar">
-                    <div class="rating-fill" :style="{ width: (restaurant.ratings.costPerformance / 5) * 100 + '%' }"></div>
+                    <div class="rating-fill" :style="{ width: (restaurant.ratings.costPerformance / 5) * 100 + '%' }">
+                    </div>
                   </div>
                   <span class="rating-value">{{ restaurant.ratings.costPerformance }}</span>
                 </div>
               </div>
             </div>
-            
+
             <!-- 联系信息 -->
             <div class="contact-info">
               <div class="contact-item">
@@ -99,7 +100,7 @@
               </div>
               <div class="contact-item">
                 <van-icon name="phone-o" size="16" />
-                <span>13800138000</span>
+                <span>{{ restaurant.phone }}</span>
               </div>
               <div class="contact-item">
                 <van-icon name="clock-o" size="16" />
@@ -131,63 +132,151 @@
         </van-tab>
       </van-tabs>
     </div>
+
+    <!-- 加载状态 -->
+    <div class="loading-overlay" v-if="loading">
+      <van-loading type="spinner" size="40px" vertical>加载中...</van-loading>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { getRestaurantById } from '../api/restaurant'
+import { showToast } from 'vant'
 
 const route = useRoute()
 const router = useRouter()
 const restaurantId = route.params.id
 
+const activeTab = ref('dishes')
+const imageHeight = ref(250)
+const loading = ref(true)
+
+// 图片处理相关
+const imageBaseURL = import.meta.env?.VITE_API_BASE_URL || ''
+const placeholderImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23f5f5f5"/%3E%3Ctext x="50" y="50" font-size="12" text-anchor="middle" dy=".3em" fill="%23999"%3E暂无图片%3C/text%3E%3C/svg%3E'
+
+const getImageUrl = (url) => {
+  if (!url) return placeholderImage
+
+  // 如果地址包含 bing 代理，提取问号后面的真实图片地址
+  if (url.includes('th.bing.com') && url.includes('?http')) {
+    const realUrl = url.split('?')[1]
+    if (realUrl && (realUrl.startsWith('http://') || realUrl.startsWith('https://'))) {
+      return realUrl
+    }
+  }
+
+  // 已经是 http 链接，直接返回
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+
+  // 相对路径，拼接后端地址
+  if (imageBaseURL) {
+    return `${imageBaseURL}${url}`
+  }
+
+  return placeholderImage
+}
+
+const handleImageError = (e) => {
+  if (e.target.src === placeholderImage) return
+  e.target.src = placeholderImage
+}
+
+// 门店数据（从接口获取）
+const restaurant = ref({
+  id: '',
+  image: '',
+  name: '',
+  desc: '',
+  rating: 0,
+  price: 0,
+  distance: 0,
+  businessHours: '',
+  address: '',
+  phone: '',
+  ratings: { flavor: 0, environment: 0, service: 0, costPerformance: 0 },
+  dishes: [],
+  merchantComments: []
+})
+
 // 返回上一页
 const goBack = () => {
   router.back()
 }
-const activeTab = ref('dishes')
-const imageHeight = ref(250)
 
 // 处理滚动事件
 const handleScroll = () => {
   // 可在此实现顶部图片动态缩放等交互效果
 }
 
-// 模拟门店数据
-const restaurant = ref({
-  id: 1,
-  image: 'https://img.yzcdn.cn/vant/cat.jpeg',
-  name: '海底捞火锅',
-  desc: '正宗川味火锅，麻辣鲜香',
-  rating: 4.8,
-  price: 150,
-  distance: 1.2,
-  businessHours: '10:00-22:00',
-  address: '北京市朝阳区建国路88号',
-  ratings: { flavor: 4.7, environment: 4.6, service: 4.9, costPerformance: 4.5 },
-  dishes: [
-    { id: 1, image: 'https://img.yzcdn.cn/vant/cat.jpeg', name: '麻辣锅底', flavor: '麻辣鲜香', rating: 4.9, price: 88, comments: [
-      { user: '张三', content: '非常好吃，麻辣够味', rating: 5, time: '2026-04-01' },
-      { user: '李四', content: '味道不错，推荐', rating: 4, time: '2026-04-02' }
-    ] },
-    { id: 2, image: 'https://img.yzcdn.cn/vant/cat.jpeg', name: '精品肥牛', flavor: '鲜嫩多汁', rating: 4.8, price: 68, comments: [
-      { user: '王五', content: '肉质鲜嫩，口感很好', rating: 5, time: '2026-04-01' }
-    ] },
-    { id: 3, image: 'https://img.yzcdn.cn/vant/cat.jpeg', name: '新鲜毛肚', flavor: '脆爽可口', rating: 4.7, price: 58, comments: [] },
-    { id: 4, image: 'https://img.yzcdn.cn/vant/cat.jpeg', name: '手工虾滑', flavor: 'Q弹鲜美', rating: 4.6, price: 48, comments: [] }
-  ],
-  merchantComments: [
-    { user: '赵六', content: '环境很好，服务周到', rating: 5, time: '2026-04-01' },
-    { user: '孙七', content: '味道不错，性价比高', rating: 4, time: '2026-04-02' }
-  ]
-})
-
 const goToDishDetail = (dishId) => {
   router.push({ path: `/dish/${restaurantId}/${dishId}` })
 }
 
+// 获取餐厅详情
+const fetchRestaurantDetail = async () => {
+  loading.value = true
+  try {
+    const result = await getRestaurantById(restaurantId)
+    console.log('getRestaurantDetail 返回结果:', result)
 
+    let detailData = null
+
+    // 处理不同的返回格式
+    if (result && typeof result === 'object') {
+      if (result.data) {
+        detailData = result.data
+      } else if (result.record) {
+        detailData = result.record
+      } else if (result.detail) {
+        detailData = result.detail
+      } else {
+        detailData = result
+      }
+    }
+
+    if (detailData) {
+      // 确保必要字段存在，并补充默认值
+      restaurant.value = {
+        id: detailData.id || restaurantId,
+        image: detailData.image || detailData.imageUrl || '',
+        name: detailData.name || '未知餐厅',
+        desc: detailData.description || detailData.desc || '暂无描述',
+        rating: detailData.rating || 4.5,
+        price: detailData.avgPrice || detailData.price || 0,
+        distance: detailData.distance || (Math.random() * 3).toFixed(1),
+        businessHours: detailData.businessHours || '10:00-22:00',
+        address: detailData.address || '地址待补充',
+        phone: detailData.phone || '联系电话待补充',
+        ratings: {
+          flavor: detailData.ratings?.flavor || 4.5,
+          environment: detailData.ratings?.environment || 4.5,
+          service: detailData.ratings?.service || 4.5,
+          costPerformance: detailData.ratings?.costPerformance || 4.5
+        },
+        dishes: detailData.dishes || [],
+        merchantComments: detailData.merchantComments || detailData.comments || []
+      }
+      console.log('成功加载餐厅详情:', restaurant.value)
+    } else {
+      showToast('获取餐厅详情失败')
+    }
+  } catch (error) {
+    console.error('获取餐厅详情失败:', error)
+    showToast('获取餐厅数据失败，请稍后重试')
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchRestaurantDetail()
+})
 </script>
 
 <style scoped>
@@ -242,7 +331,9 @@ const goToDishDetail = (dishId) => {
   margin-bottom: 10px;
 }
 
-.rating, .price, .distance {
+.rating,
+.price,
+.distance {
   font-size: 14px;
   color: #666;
 }
@@ -498,5 +589,16 @@ const goToDishDetail = (dishId) => {
   color: #999;
 }
 
-
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
 </style>
