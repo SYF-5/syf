@@ -6,7 +6,7 @@
     </div>
 
     <div class="dish-info">
-      <img :src="dish.image" alt="菜品图片" />
+      <img :src="getImageUrl(dish.image)" alt="菜品图片" @error="handleImageError" />
       <div class="dish-details">
         <h1 class="dish-name">{{ dish.name }}</h1>
         <div class="dish-rating">
@@ -47,6 +47,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { getDishById } from '../api/dish'
+import { showToast } from 'vant'
 
 const route = useRoute()
 const router = useRouter()
@@ -58,27 +60,73 @@ const goBack = () => {
   router.back()
 }
 
-// 模拟菜品数据
+const loading = ref(false)
+
+// 菜品数据
 const dish = ref({
   id: 1,
-  image: 'https://img.yzcdn.cn/vant/cat.jpeg',
-  name: '麻辣锅底',
-  flavor: '麻辣鲜香',
-  rating: 4.9,
-  price: 88,
-  comments: [
-    { user: '张三', content: '非常好吃，麻辣够味', rating: 5, time: '2026-04-01' },
-    { user: '李四', content: '味道不错，推荐', rating: 4, time: '2026-04-02' }
-  ]
+  image: '',
+  name: '',
+  flavor: '',
+  rating: 4.5,
+  price: 0,
+  comments: []
 })
+
+// 图片处理
+const placeholderImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23f5f5f5"/%3E%3Ctext x="50" y="50" font-size="12" text-anchor="middle" dy=".3em" fill="%23999"%3E暂无图片%3C/text%3E%3C/svg%3E'
+
+const getImageUrl = (url) => {
+  if (!url) return placeholderImage
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  return `https://th.bing.com/th/id/OIP.${url}`
+}
+
+const handleImageError = (e) => {
+  if (e.target.src === placeholderImage) return
+  e.target.src = placeholderImage
+}
+
+const fetchDishDetail = async () => {
+  try {
+    const result = await getDishById(dishId)
+    console.log('获取到的菜品数据:', result)
+    
+    let dishData = null
+    if (result && typeof result === 'object') {
+      if (result.data) {
+        dishData = result.data
+      } else {
+        dishData = result
+      }
+    }
+    
+    if (dishData) {
+      dish.value = {
+        id: dishData.id || dishId,
+        image: dishData.imageUrl || '',
+        name: dishData.name || '未知菜品',
+        flavor: dishData.description || '暂无描述',
+        rating: dishData.rating || 4.5,
+        price: dishData.price || 0,
+        comments: dishData.comments || []
+      }
+
+    } else {
+      showToast('获取菜品详情失败')
+    }
+  } catch (error) {
+    console.error('获取菜品详情失败:', error)
+    showToast('获取菜品数据失败，请稍后重试')
+  }
+}
 
 const goToEvaluation = () => {
   router.push({ path: `/evaluation/${restaurantId}/${dishId}` })
 }
 
 onMounted(() => {
-  // 根据dishId获取菜品数据
-  // 这里可以添加实际的API调用
+  fetchDishDetail()
 })
 </script>
 
@@ -214,5 +262,12 @@ onMounted(() => {
 
 .evaluation-section {
   padding: 20px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 500px;
 }
 </style>

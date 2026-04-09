@@ -144,6 +144,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getRestaurantById } from '../api/restaurant'
+import { getDishesByRestaurantId } from '../api/dish'
 import { showToast } from 'vant'
 
 const route = useRoute()
@@ -152,7 +153,7 @@ const restaurantId = route.params.id
 
 const activeTab = ref('dishes')
 const imageHeight = ref(250)
-const loading = ref(true)
+const loading = ref(false)
 
 // 图片处理相关
 const imageBaseURL = import.meta.env?.VITE_API_BASE_URL || ''
@@ -220,24 +221,37 @@ const goToDishDetail = (dishId) => {
 
 // 获取餐厅详情
 const fetchRestaurantDetail = async () => {
-  loading.value = true
   try {
-    const result = await getRestaurantById(restaurantId)
-    console.log('getRestaurantDetail 返回结果:', result)
+    // 并行获取餐厅和菜品数据
+    const [restaurantResult, dishesResult] = await Promise.all([
+      getRestaurantById(restaurantId),
+      getDishesByRestaurantId(restaurantId)
+    ])
+    
+    console.log('getRestaurantDetail 返回结果:', restaurantResult)
+    console.log('getDishesByRestaurantId 返回结果:', dishesResult)
 
     let detailData = null
 
     // 处理不同的返回格式
-    if (result && typeof result === 'object') {
-      if (result.data) {
-        detailData = result.data
-      } else if (result.record) {
-        detailData = result.record
-      } else if (result.detail) {
-        detailData = result.detail
+    if (restaurantResult && typeof restaurantResult === 'object') {
+      if (restaurantResult.data) {
+        detailData = restaurantResult.data
+      } else if (restaurantResult.record) {
+        detailData = restaurantResult.record
+      } else if (restaurantResult.detail) {
+        detailData = restaurantResult.detail
       } else {
-        detailData = result
+        detailData = restaurantResult
       }
+    }
+
+    // 处理菜品数据
+    let dishesData = []
+    if (dishesResult && Array.isArray(dishesResult)) {
+      dishesData = dishesResult
+    } else if (dishesResult && typeof dishesResult === 'object' && Array.isArray(dishesResult.data)) {
+      dishesData = dishesResult.data
     }
 
     if (detailData) {
@@ -259,18 +273,25 @@ const fetchRestaurantDetail = async () => {
           service: detailData.ratings?.service || 4.5,
           costPerformance: detailData.ratings?.costPerformance || 4.5
         },
-        dishes: detailData.dishes || [],
+        dishes: dishesData.map(dish => ({
+          id: dish.id,
+          image: dish.imageUrl || '',
+          name: dish.name || '未知菜品',
+          flavor: dish.description || '暂无描述',
+          rating: 4.5, // 默认评分
+          price: dish.price || 0,
+          comments: [] // 默认空评论
+        })),
         merchantComments: detailData.merchantComments || detailData.comments || []
       }
       console.log('成功加载餐厅详情:', restaurant.value)
+
     } else {
       showToast('获取餐厅详情失败')
     }
   } catch (error) {
     console.error('获取餐厅详情失败:', error)
     showToast('获取餐厅数据失败，请稍后重试')
-  } finally {
-    loading.value = false
   }
 }
 

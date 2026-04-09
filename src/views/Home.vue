@@ -108,7 +108,7 @@ const activeTab = ref('all')
 const tabsRef = ref(null)
 let scrollTimer = null
 const router = useRouter()
-const loading = ref(true)
+const loading = ref(false)
 
 const imageBaseURL = import.meta.env?.VITE_API_BASE_URL || ''
 
@@ -221,7 +221,6 @@ const filteredRestaurants = computed(() => {
 })
 
 const fetchRestaurants = async () => {
-  loading.value = true
   try {
     // 注意：这里的 result 已经是后端返回的数据（可能是数组或对象）
     const result = await getRestaurants()
@@ -259,10 +258,10 @@ const fetchRestaurants = async () => {
         rating: item.rating || (4.0 + Math.random() * 1).toFixed(1)
       }))
       console.log('成功加载餐厅数据:', restaurants.value)
-      showToast(`成功加载 ${restaurants.value.length} 家餐厅`)
+
     } else if (restaurantData && restaurantData.length === 0) {
       restaurants.value = []
-      showToast('暂无餐厅数据')
+
     } else {
       console.error('无法解析数据，原始返回值:', result)
       restaurants.value = []
@@ -272,8 +271,6 @@ const fetchRestaurants = async () => {
     console.error('获取餐厅列表失败:', error)
     showToast('获取餐厅数据失败，请稍后重试')
     restaurants.value = []
-  } finally {
-    loading.value = false
   }
 }
 onMounted(() => {
