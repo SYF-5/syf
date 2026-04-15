@@ -107,26 +107,35 @@
                 <span>{{ restaurant.businessHours }}</span>
               </div>
             </div>
-            <div class="merchant-comments">
-              <h3 class="comments-title">商家评论</h3>
-              <div class="comment-list">
-                <div class="comment-item" v-for="comment in restaurant.merchantComments" :key="comment.time">
-                  <div class="comment-header">
-                    <div class="comment-avatar">
-                      <van-icon name="user-o" size="24" color="#1989fa" />
-                    </div>
-                    <div class="comment-info">
-                      <div class="comment-user">{{ comment.user }}</div>
-                      <div class="comment-rating">
-                        <van-icon name="star" color="#ffd100" size="14" />
-                        <span>{{ comment.rating }}</span>
-                      </div>
+          </div>
+        </van-tab>
+        <van-tab title="全部评论" name="comments">
+          <!-- 全部评论 -->
+          <div class="all-comments">
+            <h3 class="comments-title">用户评论</h3>
+            <div class="comment-list">
+              <div class="comment-item" v-for="comment in restaurant.allComments" :key="comment.id || comment.time">
+                <div class="comment-header">
+                  <div class="comment-avatar">
+                    <img :src="comment.avatar || 'https://via.placeholder.com/40x40?text=用户'" alt="用户头像" />
+                  </div>
+                  <div class="comment-info">
+                    <div class="comment-user">{{ comment.user || '匿名用户' }}</div>
+                    <div class="comment-rating">
+                      <van-icon name="star" color="#ffd100" size="14" />
+                      <span>{{ comment.rating || 5 }}</span>
                     </div>
                   </div>
-                  <p class="comment-content">{{ comment.content }}</p>
-                  <span class="comment-time">{{ comment.time }}</span>
                 </div>
+                <p class="comment-content">{{ comment.content }}</p>
+                <div class="comment-images" v-if="comment.images && comment.images.length > 0">
+                  <img v-for="(image, index) in comment.images" :key="index" :src="getImageUrl(image)" alt="评论图片" class="comment-image" @error="handleImageError" />
+                </div>
+                <span class="comment-time">{{ comment.time }}</span>
               </div>
+            </div>
+            <div v-if="!restaurant.allComments || restaurant.allComments.length === 0" class="no-comments">
+              暂无评论，快来发表第一条评论吧！
             </div>
           </div>
         </van-tab>
@@ -200,9 +209,14 @@ const restaurant = ref({
   businessHours: '',
   address: '',
   phone: '',
-  ratings: { flavor: 0, environment: 0, service: 0, costPerformance: 0 },
+  ratings: {
+    flavor: 0,
+    environment: 0,
+    service: 0,
+    costPerformance: 0
+  },
   dishes: [],
-  merchantComments: []
+  allComments: []
 })
 
 // 返回上一页
@@ -616,10 +630,103 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.8);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999;
+}
+
+/* 全部评论样式 */
+.all-comments {
+  padding: 16px;
+}
+
+.comment-item {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.comment-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.comment-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.comment-info {
+  flex: 1;
+}
+
+.comment-user {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.comment-rating {
+  font-size: 12px;
+  color: #ffd100;
+  display: flex;
+  align-items: center;
+}
+
+.comment-rating van-icon {
+  margin-right: 4px;
+}
+
+.comment-content {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  word-break: break-word;
+}
+
+.comment-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.comment-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.comment-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.no-comments {
+  text-align: center;
+  padding: 40px 0;
+  color: #999;
+  font-size: 14px;
+  background-color: #fff;
+  border-radius: 8px;
+  margin-top: 16px;
 }
 </style>

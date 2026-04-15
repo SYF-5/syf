@@ -12,6 +12,10 @@ import DishDetail from './views/DishDetail.vue'
 import Evaluation from './views/Evaluation.vue'
 import UserHome from './views/UserHome.vue'
 import MerchantHome from './views/MerchantHome.vue'
+import Mine from './views/Mine.vue'
+import Merchant from './views/Merchant.vue'
+import MyStores from './views/MyStores.vue'
+import AddStore from './views/AddStore.vue'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -21,11 +25,15 @@ const routes = [
   { path: '/login', component: Login },
   { path: '/register', component: Register },
   { path: '/home', component: Home },
+  { path: '/mine', component: Mine },
   { path: '/restaurant/:id', component: RestaurantDetail },
   { path: '/dish/:restaurantId/:dishId', component: DishDetail },
   { path: '/evaluation/:restaurantId/:dishId', component: Evaluation },
   { path: '/user-home', component: UserHome },
-  { path: '/merchant-home', component: MerchantHome }
+  { path: '/merchant-home', component: MerchantHome },
+  { path: '/merchant', component: Merchant },
+  { path: '/my-stores', component: MyStores },
+  { path: '/add-store', component: AddStore }
 ]
 
 const router = createRouter({

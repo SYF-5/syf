@@ -20,18 +20,26 @@
 
     <div class="comments-section">
       <h2 class="section-title">用户评论</h2>
-      <div class="comment-item" v-for="comment in dish.comments" :key="comment.time">
+      <div class="comment-item" v-for="comment in dish.comments" :key="comment.id || comment.time">
         <div class="comment-header">
-          <span class="comment-user">{{ comment.user }}</span>
-          <div class="comment-rating">
-            <van-icon name="star" color="#ffd100" size="14" />
-            <span>{{ comment.rating }}</span>
+          <div class="comment-avatar">
+            <img :src="comment.avatar || 'https://via.placeholder.com/40x40?text=用户'" alt="用户头像" />
+          </div>
+          <div class="comment-info">
+            <div class="comment-user">{{ comment.user || '匿名用户' }}</div>
+            <div class="comment-rating">
+              <van-icon name="star" color="#ffd100" size="14" />
+              <span>{{ comment.rating || 5 }}</span>
+            </div>
           </div>
         </div>
         <p class="comment-content">{{ comment.content }}</p>
+        <div class="comment-images" v-if="comment.images && comment.images.length > 0">
+          <img v-for="(image, index) in comment.images" :key="index" :src="getImageUrl(image)" alt="评论图片" class="comment-image" @error="handleImageError" />
+        </div>
         <span class="comment-time">{{ comment.time }}</span>
       </div>
-      <div v-if="dish.comments.length === 0" class="no-comments">
+      <div v-if="!dish.comments || dish.comments.length === 0" class="no-comments">
         暂无评论，快来发表第一条评论吧！
       </div>
     </div>
@@ -226,19 +234,59 @@ onMounted(() => {
 
 .comment-header {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.comment-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.comment-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.comment-info {
+  flex: 1;
 }
 
 .comment-user {
   font-size: 14px;
   color: #333;
   font-weight: 600;
+  margin-bottom: 4px;
 }
 
 .comment-rating {
-  font-size: 14px;
+  font-size: 12px;
   color: #ffd100;
+  display: flex;
+  align-items: center;
+}
+
+.comment-rating van-icon {
+  margin-right: 4px;
+}
+
+.comment-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.comment-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 4px;
 }
 
 .comment-content {
